@@ -117,6 +117,14 @@ endef
 
 TARGET_DEVICES += sun8i-h2-plus-orangepi-r1
 
+define Device/sun8i-h2-plus-orangepi-zero
+  DEVICE_TITLE:=Xunlong Orange Pi Zero
+  DEVICE_PACKAGES:=kmod-rtc-sunxi
+  SUPPORTED_DEVICES:=xunlong,orangepi-zero
+  SUNXI_DTS:=sun8i-h2-plus-orangepi-zero
+endef
+TARGET_DEVICES += sun8i-h2-plus-orangepi-zero
+
 
 define Device/sun8i-h3-nanopi-m1-plus
   DEVICE_TITLE:=FriendlyArm NanoPi M1 Plus
@@ -166,7 +174,6 @@ define Device/sun8i-h3-orangepi-2
 endef
 
 TARGET_DEVICES += sun8i-h3-orangepi-2
-
 
 define Device/sun7i-a20-pcduino3
   DEVICE_TITLE:=LinkSprite pcDuino3
