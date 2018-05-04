@@ -1,0 +1,13 @@
+diff --git a/ap.c b/ap.c
+index 5276c5a..cc2d60a 100644
+--- a/ap.c
++++ b/ap.c
+@@ -1168,7 +1168,7 @@ static int xradio_upload_null(struct xradio_vif *priv)
+ 		.rate = 0xFF,
+ 	};
+ 
+-	frame.skb = ieee80211_nullfunc_get(priv->hw, priv->vif, false);
++	frame.skb = ieee80211_nullfunc_get(priv->hw, priv->vif);
+ 	if (WARN_ON(!frame.skb))
+ 		return -ENOMEM;
+ 

@@ -119,7 +119,7 @@ TARGET_DEVICES += sun8i-h2-plus-orangepi-r1
 
 define Device/sun8i-h2-plus-orangepi-zero
   DEVICE_TITLE:=Xunlong Orange Pi Zero
-  DEVICE_PACKAGES:=kmod-rtc-sunxi
+  DEVICE_PACKAGES:=kmod-rtc-sunxi kmod-xr819 xr819-firmware
   SUPPORTED_DEVICES:=xunlong,orangepi-zero
   SUNXI_DTS:=sun8i-h2-plus-orangepi-zero
 endef
