@@ -17,14 +17,18 @@ PKG_BUILD_PARALLEL:=1
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk
 
+XR819_AUTOLOAD := \
+	cfg80211 \
+	mac80211 \
+	xradio_wlan
 
 define KernelPackage/xr819
   SUBMENU:=Wireless Drivers
   TITLE:=xradio allwinner xr819 wireless driver
-  DEPENDS:=kmod-mac80211
+  DEPENDS:=+kmod-mac80211 +xr819-firmware
   FILES:=\
 	  $(PKG_BUILD_DIR)/xradio_wlan.ko
-  AUTOLOAD:=$(call AutoLoad,50,xradio_wlan)
+  AUTOLOAD:=$(call AutoProbe,$(XR819_AUTOLOAD))
 endef
 
 NOSTDINC_FLAGS = \
@@ -59,10 +63,10 @@ define Package/xr819-firmware
   SECTION:=firmware
   CATEGORY:=Firmware
   TITLE:=Allwinner XR819 fimware
-  DEPENDS:=+kmod-xr819
+  DEPENDS:=+kmod-mac80211
 endef
 
-define Package/xr819-firmware-default/install
+define Package/xr819-firmware/install
 	$(INSTALL_DIR) $(1)/lib/firmware
 	$(INSTALL_DIR) $(1)/lib/firmware/xr819
 	$(CP) $(PKG_BUILD_DIR)/firmware/boot_xr819.bin $(1)/lib/firmware/xr819/
@@ -70,6 +74,6 @@ define Package/xr819-firmware-default/install
 	$(CP) $(PKG_BUILD_DIR)/firmware/sdd_xr819.bin $(1)/lib/firmware/xr819/
 endef
 
-$(eval $(call KernelPackage,xr819))
 $(eval $(call BuildPackage,xr819-firmware))
+$(eval $(call KernelPackage,xr819))
 
