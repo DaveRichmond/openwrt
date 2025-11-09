@@ -36,6 +36,9 @@ do_sysinfo_octeon() {
 		name="itus,shield-router"
 		;;
 
+	"XIRRUS"*)
+		name="xirrus,x2-120"
+		;;
 	*)
 		name="generic"
 		;;

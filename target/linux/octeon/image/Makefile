@@ -117,4 +117,28 @@ define Device/cisco_vedge1000
 endef
 TARGET_DEVICES += cisco_vedge1000
 
+define Build/xapimg
+  cp $@ $@-rootfs.bin
+  # original from the openwrt forums. This results in us loading a kernel with a broken appeneded initramfs,
+  # then the xirrus-kernel in the second partition, and then finally the squashfs in the third
+  #mkimage -A mips -O Linux -T multi -C none -n '$(VERSION_DIST) Linux-$(LINUX_VERSION)' -e 0 -a 0 -d $(KDIR)/vmlinux-initramfs.elf:$<:$@-rootfs.bin $@
+  # This however works. We get the xirrus kernel with the correct dtb built-in as part1, then the initramfs 
+  # in partition 2, and finally the squashfs in part 3
+  # FIXME: is this the best way to get access to the initramfs? Or is there a better place?
+  mkimage -A mips -O Linux -T multi -C none -n '$(VERSION_DIST) Linux-$(LINUX_VERSION)' -e 0 -a 0 -d $<:$(KDIR)/linux-$(LINUX_VERSION)/usr/initramfs_data.cpio:$@-rootfs.bin $@
+endef
+define Device/xirrus
+  IMAGES := factory.bin
+  IMAGE/factory.bin := append-rootfs | pad-rootfs | pad-to 128k | xapimg
+  DEVICE_VENDOR := Xirrus
+  DEVICE_MODEL := xap
+  BOARD_NAME := xirrus,x2_120
+  DEVICE_DTS := cn7030_xirrus_x2_120
+  KERNEL := kernel-bin | append-dtb-elf
+  # we need the bare initrd to stick into the second partition of the uimage package
+  KERNEL_INITRAMFS := 
+  KERNEL_DEPENDS := $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
+endef
+TARGET_DEVICES += xirrus
+
 $(eval $(call BuildImage))

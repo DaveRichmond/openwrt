@@ -20,6 +20,17 @@ ubnt,edgerouter-6p)
 cisco,vedge1000)
 	ucidef_set_interfaces_lan_wan "mgmt0" "lan0"
 	;;
+xirrus,x2-120)
+	ucidef_set_interfaces_lan_wan "eth1" "eth0"
+	# allow admin on wan for testing
+	uci add firewall wan_https_allow
+	uci set firewall.wan_https_allow=rule
+	uci set firewall.wan_https_allow.name='Allow Luci from WAN'
+	uci set firewall.wan_https_allow.src='wan'
+	uci set firewall.wan_https_allow.proto='tcp'
+	uci set firewall.wan_https_allow.dest_port='80 443'
+	uci set firewall.wan_https_allow.target='ACCEPT'
+	;;
 *)
 	ucidef_set_interfaces_lan_wan "eth0" "eth1"
 	;;

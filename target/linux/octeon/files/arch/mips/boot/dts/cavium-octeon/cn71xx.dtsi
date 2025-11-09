@@ -13,7 +13,7 @@
 		compatible = "simple-bus";
 		ranges;
 
-		bootbus@1180000000000 {
+		bootbus: bootbus@1180000000000 {
 			#address-cells = <2>;
 			#size-cells = <1>;
 			compatible = "cavium,octeon-3860-bootbus";

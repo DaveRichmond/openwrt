@@ -1,0 +1,278 @@
+#include "cn71xx.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
+
+/ {
+	compatible = "xirrus,x2-120", "cavium,cn7130", "cavium,cn7030v";
+	model = "Xirrus X2-120 Access Point";
+
+        memory@0 {
+                device_type = "memory";
+                reg = <0x0 0x00000000>,
+                      <0x0 0x10000000>,
+                      <0x0 0x20000000>,
+                      <0x0 0x30000000>;
+        };
+
+        leds {
+		compatible = "gpio-leds";
+		status = "okay";
+
+                green_right: led-0 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_GREEN>;
+                        gpios = <&gpio 6 GPIO_ACTIVE_HIGH>;
+			label = "green_right";
+                };
+                green_left: led-1 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_GREEN>;
+                        gpios = <&gpio 7 GPIO_ACTIVE_HIGH>;
+			label = "green_left";
+                };
+                orange_right: led-2 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_ORANGE>;
+                        gpios = <&gpio 9 GPIO_ACTIVE_HIGH>;
+			label = "orange_right";
+                };
+                orange_left: led-3 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_ORANGE>;
+                        gpios = <&gpio 10 GPIO_ACTIVE_HIGH>;
+			label = "orange_left";
+                };
+                red_centre: led-4 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_RED>;
+                        gpios = <&gpio 14 GPIO_ACTIVE_HIGH>;
+			panic-indicator;
+			label = "red_centre";
+                };
+                green_centre: led-5 {
+                        function = LED_FUNCTION_INDICATOR;
+                        color = <LED_COLOR_ID_GREEN>;
+                        gpios = <&gpio 15 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
+			label = "green_centre";
+                };
+        };
+};
+
+&bootbus {
+	flash0: nor@0,0 {
+		compatible = "cfi-flash";
+		reg = <0 0 0x800000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		/*
+		partition@0 {
+			label = "bootloader";
+			reg = <0 0x200000>;
+			read-only;
+		};
+		partition@200000 {
+			label = "kernel";
+			reg = <0x200000 0x280000>;
+		};
+		partition@480000 {
+			label = "cramfs";
+			reg = <0x400000 0x370000>;
+		};
+		partition@7f0000 {
+			label = "environment";
+			reg = <0x7f0000 0x10000>;
+			read-only;
+		};
+		*/
+	};
+};
+
+&uart0 {
+        status = "okay";
+};
+// not sure if anything is connected to uart1, but the bluetooth radio has to be somewhere....
+&uart1 {
+	status = "okay";
+};
+
+// testing if usb works at all despite there being no accessible usb port
+&usb0 {
+	status = "okay";
+};
+&xhci0 {
+	status = "okay";
+	dr_mode = "host";
+};
+
+&twsi0 {
+	status = "okay";
+	rtc@51 {
+		compatible = "nxp,pcf8563";
+		reg = <0x51>;
+		// FIXME: find gpio pins for any interrupts
+	};
+};
+
+&twsi1 {
+	status = "okay";
+	sata-eeprom@51 {
+		compatible = "atmel,24lc01";
+		reg = <0x51>;
+		pagesize = <8>;
+	};
+};
+
+&mmc {
+        status = "okay";
+
+        mmc-slot@0 {
+                compatible = "mmc-slot";
+                reg = <0>;
+                non-removable;
+                max-frequency = <26000000>;
+                voltage-ranges = <3300 3300>;
+                bus-width = <8>;
+        };
+};
+
+&spi {
+	status = "okay";
+
+	flash@0 {
+		// FIXME: "Unknown JEDEC bytes"
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "st,m25p64","spi-flash";
+		reg = <0>;
+		spi-max-frequency = <25000000>;
+
+		//pagesize = <256>;
+		//size = <0x800000>;
+		//address-width = <24>;
+
+		/* FIXME!
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = <1>;
+			#size-cells = <1>;
+
+			partition@0 {
+				label = "uboot";
+				read-only;
+				reg = <0x000000 0x300000>; // 3MB? need to reverse-engineer the partitions
+			}
+		};
+		*/
+	};
+};
+
+// the following is kinda a guess
+// however once booted with this I could determine that there's a phy at dev 1 on mdio bus 0
+// and then a second phy at dev 2 on mdio bus 1
+// with only the eth0 plugged in, it appears 0-1 is eth0 (it shows the link as up)
+// and 1-2 is eth1 (link is down, which it should be due to no link connected)
+// so let's see if giving access to all the phys, and then mapping them later on works
+// through luck the first phy is connected to pin 6 as an interrupt (the xirrus xarray dts I looked at
+// had the second phy connected to pin 6 and the first to 5, but swapping those around got traffic flowing
+// on eth0).
+// eth1 is untested
+// we're getting an oops that interrupt 28 is ignored, which appears to be the mdio bus of the first phy
+&smi0 {
+	status = "okay";
+	phy0: ethernet-phy@0 {
+		cavium,qlm-trim = "0,sgmii";
+		device_type = "ethernet-phy";
+		reg = <0>;
+                //interrupt-parent = <&gpio>;
+		//interrupts = <6 8>;     /* pin 6, active low */
+		coma = <&gpio 9 0>;     /* pin 9, not inverted */
+	};
+	phy1: ethernet-phy@1 {
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		device_type = "ethernet-phy";
+		reg = <1>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <6 8>;     /* pin 6, active low */
+	};
+	phy2: ethernet-phy@2 {
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		device_type = "ethernet-phy";
+		reg = <2>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <6 8>;     /* pin 6, active low */
+	};
+	phy3: ethernet-phy@3 {
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		device_type = "ethernet-phy";
+		reg = <3>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <6 8>;     /* pin 6, active low */
+	};
+};
+
+&smi1 {
+	status = "okay";
+	phy10: ethernet-phy@10 {
+		cavium,qlm-trim = "0,sgmii";
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		reg = <0>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <5 8>;     /* pin 5, active low */
+		coma = <&gpio 9 0>;     /* pin 9, not inverted */
+	};
+	phy11: ethernet-phy@11 {
+		cavium,qlm-trim = "0,sgmii";
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		reg = <1>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <5 8>;     /* pin 5, active low */
+	};
+	phy12: ethernet-phy@12 {
+		cavium,qlm-trim = "0,sgmii";
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		reg = <2>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <5 8>;     /* pin 5, active low */
+	};
+	phy13: ethernet-phy@13 {
+		cavium,qlm-trim = "0,sgmii";
+		compatible = "atheros,ar8033", "ethernet-phy-ieee802.3-c22";
+		reg = <3>;
+		//interrupt-parent = <&gpio>;
+		//interrupts = <5 8>;     /* pin 5, active low */
+	};
+};
+
+// as above, we now have a phy1 and a phy12 with our interfaces
+// more testing needed to see if this works
+&pip {
+	status = "okay";
+
+	interface@0 {
+		status = "okay";
+
+		ethernet@0 {
+			label = "eth0";
+			status = "okay";
+			reg = <0x0>; // port
+			phy-mode = "sgmii";
+			phy-handle = <&phy1>;
+			local-mac-address = [ 00 00 00 00 00 00 ];
+		};
+	};
+
+	interface@1 {
+		status = "okay";
+		ethernet@0 {
+			label = "eth1";
+			status = "okay";
+			reg = <0x0>; // port
+			phy-mode = "sgmii";
+			phy-handle = <&phy12>;
+			local-mac-address = [ 00 00 00 00 00 00 ];
+		};
+	};
+};
