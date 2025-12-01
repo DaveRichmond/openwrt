@@ -1,0 +1,226 @@
+--- /dev/null
++++ b/arch/arm/boot/dts/broadcom/bcm47622-aerohive-ap305c.dts
+@@ -0,0 +1,200 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright 2019 Broadcom Ltd.
++ */
++
++/dts-v1/;
++/memreserve/    0x0000000000000000 0x0000000000008000;
++/memreserve/    0x0000000004000000 0x0000000000100000;
++//memreserve/    0x0000000005005000 0x0000000000003000; // not sure what these ones specifically deal with
++//memreserve/    0x000000003c238000 0x0000000001e5d000; // but they're directly from the aerohive dtb itself
++
++#include "bcm47622.dtsi"
++
++
++/ {
++        model = "Aerohive AP305C";
++        compatible = "aerohive,ap305c", "brcm,bcm47622", "brcm,bcmbca";
++	/delete-node/ psci;
++
++        aliases {
++                serial0 = &uart0;
++        };
++
++        chosen {
++                bootargs = "console=ttyAMA0,9600 earlyprintk debug earlycon root=/dev/ram";
++                stdout-path = "serial0:9600n8";
++		//stdout-path = &uart0;
++        };
++
++        memory: mem@0 {
++                device_type = "memory";
++		reg = <0x0 0x30000000>;
++		//reg = <0x0 0x40000000>; // this crashes
++        };
++
++	reserved-memory {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		ranges;
++
++		/*
++		dt_reserved_rdp1: dt_reserved_rdp1@0 {
++			reg = <0x0 0x8000>;
++			status = "okay";
++		};
++		*/
++	};
++
++        // FIXME: pcie extracted from decompiled dtb
++	/*
++        pcie@85000000 {
++                compatible = "brcm,bcm963xx-vpcie";
++                device_type = "vpci";
++                reg = <0x85000000 0x1000000 0x86000000 0x1000000>;
++                brcm,coreid = <0x01>;
++        };
++
++        pcie@80040000 {
++                compatible = "brcm,bcm963xx-pcie";
++                device_type = "pci";
++                reg = <0x80040000 0xa000>;
++                #address-cells = <0x03>;
++                #size-cells = <0x02>;
++                ranges = <0x2000000 0x00 0xc0000000 0xc0000000 0x00 0x10000000>;
++                interrupt-names = "intr";
++                interrupts = <0x00 0x2b 0x04>;
++                #interrupt-cells = <0x01>;
++                interrupt-map-mask = <0x00 0x00 0x00 0x00>;
++                interrupt-map = <0x00 0x00 0x00 0x00 0x01 0x00 0x2b 0x04>;
++                brcm,coreid = <0x00>;
++        };
++	*/
++
++	rng@ff800b80 {
++                compatible = "brcm,iproc-rng200";
++                reg = <0xff800b80 0x28>;
++        };
++        brcm-therm {
++                compatible = "brcm,therm";
++                status = "okay";
++        };
++};
++
++&CA7_0 {
++	/delete-property/ enable-method;
++};
++&CA7_1 {
++	/delete-property/ enable-method;
++	enable-method = "brcm,bca-smp";
++};
++&CA7_2 {
++	/delete-property/ enable-method;
++	enable-method = "brcm,bca-smp";
++};
++&CA7_3 {
++	/delete-property/ enable-method;
++	enable-method = "brcm,bca-smp";
++};
++
++&uart0 {
++        status = "okay";
++};
++
++&hsspi {
++        status = "okay";
++};
++
++&nand_controller {
++        brcm,wp-not-connected;
++        status = "okay";
++
++};
++
++&nandcs {
++        nand-on-flash-bbt;
++        brcm,nand-ecc-use-strap;
++	partitions {
++		compatible = "fixed-partitions";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		// extracted from aerohive device while running (via busybox)
++		partition@0 { // mtd0
++			reg = <0x0 0x800000>;
++			label = "uboot";
++			read-only;
++		};
++		partition@800000 { // mtd1
++			reg = <0x800000 0x400000>;
++			label = "shmoo";
++			read-only;
++		};
++		partition@C00000 { //mtd2
++			reg = <0xC00000 0x100000>;
++			label = "hwinfo";
++			read-only;
++		};
++		partition@D00000 { // mtd3
++			reg = <0xD00000 0x100000>;
++			label = "nvram";
++			read-only;
++		};
++		partition@E00000 { // mtd4
++			reg = <0xE00000 0xE00000>;
++			label = "kernel";
++			read-only;
++		};
++		partition@1C00000 { // mtd5
++			reg = <0x1C00000 0x200000>;
++			label = "dts";
++			read-only;
++		};
++		partition@1E00000 { // mtd6
++			reg = <0x1E00000 0x6400000>;
++			label = "app";
++			read-only;
++		};
++		partition@8200000 { // mtd7
++			reg = <0x8200000 0x100000>;
++			label = "uboot env";
++			read-only;
++		};
++		partition@8300000 { // mtd8
++			reg = <0x8300000 0x100000>;
++			label = "boot info";
++			read-only;
++		};
++		partition@8400000 { // mtd9
++			reg = <0x8400000 0x100000>;
++			label = "static boot info";
++			read-only;
++		};
++		partition@8500000 { // mtd10
++			reg = <0x8500000 0x17B00000>;
++			label = "ubifs";
++			read-only;
++		};
++		/*
++		partition@1220000 {
++			reg = <0x1220000 0x1EDE0000>;
++			label = "ubi";
++			compatible = "linux,ubi";
++			read-only;
++		};
++		*/
++	};
++};
++
++&bus {
++	watchdog@480 {
++		status = "okay";
++		compatible = "brcm,bcm96xxx-wdt";
++		reg = <0x480 0x10>;
++		timeout-sec = <0x50>;
++	};
++	i2c@ff802100 {
++		compatible = "brcm,bcm63000-i2c";
++		reg = <0x2100 0x60>;
++	};
++};
+--- a/arch/arm/boot/dts/broadcom/Makefile
++++ b/arch/arm/boot/dts/broadcom/Makefile
+@@ -44,7 +44,8 @@ dtb-$(CONFIG_ARCH_BCMBCA) += \
+ 	bcm96756.dtb \
+ 	bcm96846.dtb \
+ 	bcm96855.dtb \
+-	bcm96878.dtb
++	bcm96878.dtb \
++	bcm47622-aerohive-ap305c.dtb
+ dtb-$(CONFIG_ARCH_BCM_5301X) += \
+ 	bcm4708-asus-rt-ac56u.dtb \
+ 	bcm4708-asus-rt-ac68u.dtb \
+--- a/arch/arm/boot/dts/broadcom/bcm47622.dtsi
++++ b/arch/arm/boot/dts/broadcom/bcm47622.dtsi
+@@ -120,7 +120,7 @@
+ 		};
+ 	};
+ 
+-	bus@ff800000 {
++	bus: bus@ff800000 {
+ 		compatible = "simple-bus";
+ 		#address-cells = <1>;
+ 		#size-cells = <1>;
